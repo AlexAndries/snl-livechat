@@ -1,0 +1,89 @@
+<html>
+    <head>
+        <title>Test Livechat</title>
+    </head>
+    <body>
+        <style>
+            *{
+                box-sizing:border-box;
+                font-family:calibri;
+            }
+            input, textarea,.chat-messages{
+                width:400px;
+                max-width:400px;
+                min-width:400px;
+                border:1px solid #dedede;
+                padding:10px;
+            }
+            .chat-messages{
+                overflow-y: scroll;
+                height:350px;
+            }
+            .chat-messages-single{
+                margin-bottom:5px;
+            }
+        </style>
+        <div class="chat">
+            <input type="text" class="chat-name" placeholder="Enter your name"/>
+            <div class="chat-messages"></div>
+            <textarea class="chat-message" placeholder="Type your message"></textarea>
+            <div class="status">Status: <span>Idle</span></div>
+        </div>
+        <script src="http://127.0.0.1:8080/socket.io/socket.io.js"></script>
+        <script>
+            (function(){
+                var getNode = function(s){
+                    return document.querySelector(s);
+                },
+                status = getNode('.status span'),
+                textarea = getNode('.chat-message'),
+                chatName = getNode('.chat-name'),
+                messages = getNode('.chat-messages'),
+                statusDefault = status.textContent,
+                setStatus = function(s){
+                    status.textContent = s;
+                    if(s !== statusDefault){
+                        var delay = setTimeout(function(){
+                            setStatus(statusDefault);
+                            clearInterval(delay);
+                        },3000);
+                    }
+                };
+                try{
+                    var socket = io.connect('http://127.0.0.1:8080');
+                }catch(e){
+                    
+                }
+                if(socket !== undefined){
+                    socket.on('output',function(data){
+                        if(data.length){
+                            data.forEach(function(each){
+                                var message = document.createElement('div');
+                                message.setAttribute('class','chat-messages-single');
+                                message.textContent = each.name+': '+each.message;
+                                messages.appendChild(message);
+                            })
+                        }
+                    })
+                    
+                    socket.on('status',function(data){
+                        setStatus((typeof data === 'object')?data.message : data);
+                        if(data.clear == true){
+                            textarea.value = '';
+                        }
+                    })
+                    textarea.addEventListener('keydown',function(event){
+                        var self = this,
+                            name = chatName.value;
+                        if(event.which == 13 && event.shiftKey == false){
+                            socket.emit('input',{
+                                name:name,
+                                message:self.value
+                            });
+                        }
+                    })
+                }
+            })();
+        </script>
+    </body>
+</html>
